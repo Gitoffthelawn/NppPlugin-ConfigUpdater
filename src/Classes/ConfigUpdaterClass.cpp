@@ -453,11 +453,19 @@ void ConfigUpdater::go(bool isIntermediateSorted)
 
 		_consoleWrite(std::wstring(L"--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---"));
 		_consoleWrite(std::wstring(L"--- ConfigUpdater run at ") + std::wstring(date_str) + L" " + std::wstring(time_str));
+
+		::MessageBox(NULL, std::wstring(std::wstring(date_str) + L" " + std::wstring(time_str)).c_str(), L"LycanDebug", MB_OK);
 	}
 	_initInternalState();
+	::MessageBox(NULL, L"After _initInternalState", L"LycanDebug", MB_OK);
+
 	_readPluginSettings();
+	::MessageBox(NULL, L"After _readPluginSettings", L"LycanDebug", MB_OK);
+
 	isIntermediateSorted |= _setting_isIntermediateSorted;
 	_updateAllThemes(isIntermediateSorted);
+	::MessageBox(NULL, L"After _updateAllThemes", L"LycanDebug", MB_OK);
+
 	if (_doAbort) { custatus_CloseWindow(); return; }
 	if (!custatus_GetInterruptFlag())
 		_updateLangs(isIntermediateSorted);
@@ -517,7 +525,10 @@ tinyxml2::XMLElement* ConfigUpdater::_get_default_style_element(tinyxml2::XMLDoc
 void ConfigUpdater::_updateAllThemes(bool isIntermediateSorted)
 {
 	tinyxml2::XMLDocument* pModelStylerDoc = _getModelStyler();
+	::MessageBox(NULL, L"Start _updateAllThemes", L"LycanDebug", MB_OK);
+
 	_updateOneTheme(pModelStylerDoc, _nppCfgDir, L"stylers.xml", isIntermediateSorted);
+	::MessageBox(NULL, L"After `stylers.xml`", L"LycanDebug", MB_OK);
 	if (_doAbort) return;	// need to abort
 
 
@@ -556,19 +567,24 @@ void ConfigUpdater::_updateAllThemes(bool isIntermediateSorted)
 // Updates one particular theme or styler file
 bool ConfigUpdater::_updateOneTheme(tinyxml2::XMLDocument* pModelStylerDoc, std::wstring themeDir, std::wstring themeName, bool isIntermediateSorted)
 {
+	::MessageBox(NULL, std::wstring(std::wstring(L"Start of _updateOneTheme") + L": " + themeName).c_str(), L"LycanDebug", MB_OK);
+
 	// get full path to file
 	delNull(themeDir);
 	delNull(themeName);
 	std::wstring themePath = themeDir + L"\\" + themeName;
 	std::string themePath8 = wstring_to_utf8(themePath);
 	_consoleWrite(std::wstring(L"--- Checking Styler/Theme File: '") + themePath + L"'");
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme: FULL PATH = ") + L": " + themePath).c_str(), L"LycanDebug", MB_OK);
 
 	// update the status dialog
 	std::wstring wsLine = themeName + L"\r\n";
 	custatus_AppendText(const_cast<LPWSTR>(wsLine.c_str()));
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... Should have added theme name to logfile" ).c_str(), L"LycanDebug", MB_OK);
 
 	// check for permissions, exit function if cannot write
 	if(!_ask_dir_permissions(themeDir)) return false;
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... Should have checked permissions").c_str(), L"LycanDebug", MB_OK);
 
 	// I don't know yet whether tinyxml2 has the TopLevelComment problem that py::xml.etree has.  I will have to watch out for that
 	// remove comment from previous call of update_stylers(), otherwise no-comment myTheme.xml would inherit comment from commented MossyLawn.xml (from .py:2024-Aug-29 bugfix)
@@ -583,6 +599,7 @@ bool ConfigUpdater::_updateOneTheme(tinyxml2::XMLDocument* pModelStylerDoc, std:
 	if (pStylerRoot == NULL)
 		if(_xml_check_result(tinyxml2::XML_ERROR_FILE_READ_ERROR, &oStylerDoc, themePath))
 			return false;
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After pStylerRoot").c_str(), L"LycanDebug", MB_OK);
 
 	// grab the theme's and model's LexerStyles node for future insertions
 	tinyxml2::XMLElement* pElThemeLexerStyles = oStylerDoc.FirstChildElement("NotepadPlus")->FirstChildElement("LexerStyles");
@@ -599,11 +616,13 @@ bool ConfigUpdater::_updateOneTheme(tinyxml2::XMLDocument* pModelStylerDoc, std:
 		std::string sTmpFile = themePath8 + ".orig.sorted";
 		oClonedOrig.SaveFile(sTmpFile.c_str());
 	}
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After isIntermediateSorted").c_str(), L"LycanDebug", MB_OK);
 
 	// Grab the default attributes from the <GlobalStyles><WidgetStyle name = "Global override" styleID = "0"...>
 	tinyxml2::XMLElement* pDefaultStyle = _get_default_style_element(oStylerDoc);
 	_mapStylerDefaultColors["fgColor"] = pDefaultStyle->Attribute("fgColor");
 	_mapStylerDefaultColors["bgColor"] = pDefaultStyle->Attribute("bgColor");
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After _get_default_style_element").c_str(), L"LycanDebug", MB_OK);
 
 	// want to keep the colors from the .model. when editing stylers.xml, but none of the others
 	bool keepModelColors = (themeName == std::wstring(L"stylers.xml"));
@@ -614,6 +633,7 @@ bool ConfigUpdater::_updateOneTheme(tinyxml2::XMLDocument* pModelStylerDoc, std:
 	while (pElModelLexerType) {
 		// get the name of this ModelLexerType
 		std::string sModelLexerTypeName = pElModelLexerType->Attribute("name");
+		::MessageBoxA(NULL, std::string(std::string("_updateOneTheme(") + themePath8 + ")\n\n... LexerType = " + sModelLexerTypeName).c_str(), "LycanDebug", MB_OK);
 
 		// Look through through this theme to find out if it has the a LexerType with the same name
 		tinyxml2::XMLElement* pSearchResult = _find_element_with_attribute_value(pElThemeLexerStyles, pElThemeLexerType, "LexerType", "name", sModelLexerTypeName);
@@ -629,20 +649,25 @@ bool ConfigUpdater::_updateOneTheme(tinyxml2::XMLDocument* pModelStylerDoc, std:
 		// then move to next
 		pElModelLexerType = pElModelLexerType->NextSiblingElement("LexerType");
 	}
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After LexerType loop").c_str(), L"LycanDebug", MB_OK);
 
 	// sort the LexerType nodes by name (keeping searchResult _last_)
 	_sortLexerTypesByName(pElThemeLexerStyles);
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After sort Lexers").c_str(), L"LycanDebug", MB_OK);
 
 	// Look for missing GlobalStyles::WidgetStyle entries as well
 	tinyxml2::XMLElement* pElThemeGlobalStyles = oStylerDoc.FirstChildElement("NotepadPlus")->FirstChildElement("GlobalStyles")->ToElement();
 	tinyxml2::XMLElement* pElModelGlobalStyles = pModelStylerDoc->FirstChildElement("NotepadPlus")->FirstChildElement("GlobalStyles")->ToElement();
 	_addMissingGlobalWidgets(pElModelGlobalStyles, pElThemeGlobalStyles, keepModelColors);
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After _addMissingGlobalWidgets").c_str(), L"LycanDebug", MB_OK);
 
 	// Write XML output
 	oStylerDoc.SaveFile(themePath8.c_str());
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After SaveFile").c_str(), L"LycanDebug", MB_OK);
 
 	// Update progress bar
 	custatus_AddProgress(1);
+	::MessageBox(NULL, std::wstring(std::wstring(L"_updateOneTheme(") + themePath + L")\n\n... After custatus_AddProgress(1)").c_str(), L"LycanDebug", MB_OK);
 
 	return true;
 }
